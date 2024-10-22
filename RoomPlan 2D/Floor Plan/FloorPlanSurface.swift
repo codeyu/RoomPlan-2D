@@ -11,6 +11,7 @@ import RoomPlan
 class FloorPlanSurface: SKNode {
     
     private let capturedSurface: CapturedRoom.Surface
+    private static var largestSurface: CapturedRoom.Surface?
     
     // MARK: - Computed properties
     
@@ -25,15 +26,22 @@ class FloorPlanSurface: SKNode {
     private var pointB: CGPoint {
         return CGPoint(x: halfLength, y: 0)
     }
-    
     private var pointC: CGPoint {
         return pointB.rotateAround(point: pointA, by: 0.25 * .pi)
+    }
+    private var pointADim: CGPoint {
+        return CGPoint(x: -halfLength, y: -dimensionLineDistFromSurface)
+    }
+    
+    private var pointBDim: CGPoint {
+        return CGPoint(x: halfLength, y: -dimensionLineDistFromSurface)
     }
     
     // MARK: - Init
     
-    init(capturedSurface: CapturedRoom.Surface) {
+    init(capturedSurface: CapturedRoom.Surface, largestSurface: CapturedRoom.Surface?) {
         self.capturedSurface = capturedSurface
+        FloorPlanSurface.largestSurface = largestSurface
         
         super.init()
         
@@ -41,9 +49,13 @@ class FloorPlanSurface: SKNode {
         let surfacePositionX = -CGFloat(capturedSurface.transform.position.x) * scalingFactor
         let surfacePositionY = CGFloat(capturedSurface.transform.position.z) * scalingFactor
         self.position = CGPoint(x: surfacePositionX, y: surfacePositionY)
+            .rotateAround(
+                point: .zero,
+                by: -CGFloat(FloorPlanSurface.largestSurface?.transform.eulerAngles.y ?? 0)
+            )
         
         // Set the surface's zRotation using the transform matrix
-        self.zRotation = -CGFloat(capturedSurface.transform.eulerAngles.z - capturedSurface.transform.eulerAngles.y)
+        self.zRotation = -CGFloat(capturedSurface.transform.eulerAngles.z - capturedSurface.transform.eulerAngles.y + (FloorPlanSurface.largestSurface?.transform.eulerAngles.y ?? 0))
         
         // Draw the right surface
         switch capturedSurface.category {
@@ -58,7 +70,6 @@ class FloorPlanSurface: SKNode {
         @unknown default:
             drawWall()
         }
-        drawMeasurement()
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -120,9 +131,17 @@ class FloorPlanSurface: SKNode {
     private func drawWall() {
         let wallPath = createPath(from: pointA, to: pointB)
         let wallShape = createShapeNode(from: wallPath)
-        wallShape.lineCap = .square
-
+        wallShape.lineCap = .round
+        
+        let dimensionsPath = createDimPath(from: pointADim, to: pointBDim)
+        let dimensionsShape = createDimNode(from: dimensionsPath)
+        dimensionsShape.lineCap = .round
+        
+        let dimensionsLabel = createDimLabel()
+        
         addChild(wallShape)
+        addChild(dimensionsShape)
+        addChild(dimensionsLabel)
     }
     
     private func drawWindow() {
@@ -164,22 +183,83 @@ class FloorPlanSurface: SKNode {
     private func drawMeasurement() {
         let length = CGFloat(capturedSurface.dimensions.x) * scalingFactor
         
+        // 计算测量线的位置（墙的外围）
+        let measurementOffset = surfaceWith / 2 + measurementLineOffset
+        
         // 创建测量线
         let measurementPath = CGMutablePath()
-        measurementPath.move(to: CGPoint(x: -length/2, y: measurementLineOffset))
-        measurementPath.addLine(to: CGPoint(x: length/2, y: measurementLineOffset))
+        measurementPath.move(to: CGPoint(x: -length/2, y: measurementOffset))
+        measurementPath.addLine(to: CGPoint(x: length/2, y: measurementOffset))
         
         let measurementLine = SKShapeNode(path: measurementPath)
         measurementLine.strokeColor = measurementLineColor
         measurementLine.lineWidth = measurementLineWidth
         
+        // 添加截断符
+        let endCapLength: CGFloat = 10
+        let leftEndCap = SKShapeNode(path: createEndCapPath(at: CGPoint(x: -length/2, y: measurementOffset), length: endCapLength))
+        let rightEndCap = SKShapeNode(path: createEndCapPath(at: CGPoint(x: length/2, y: measurementOffset), length: endCapLength))
+        leftEndCap.strokeColor = measurementLineColor
+        rightEndCap.strokeColor = measurementLineColor
+        leftEndCap.lineWidth = measurementLineWidth
+        rightEndCap.lineWidth = measurementLineWidth
+        
         // 创建测量文本
         let measurementText = SKLabelNode(text: String(format: "%.2f m", capturedSurface.dimensions.x))
         measurementText.fontSize = measurementTextFontSize
         measurementText.fontColor = measurementTextColor
-        measurementText.position = CGPoint(x: 0, y: measurementLineOffset + 10)
+        measurementText.position = CGPoint(x: 0, y: measurementOffset + endCapLength + 5)
+        measurementText.verticalAlignmentMode = .bottom
         
         addChild(measurementLine)
+        addChild(leftEndCap)
+        addChild(rightEndCap)
         addChild(measurementText)
+    }
+    
+    private func createEndCapPath(at point: CGPoint, length: CGFloat) -> CGPath {
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: point.x, y: point.y - length/2))
+        path.addLine(to: CGPoint(x: point.x, y: point.y + length/2))
+        return path
+    }
+    
+    private func createDimPath(from pointA: CGPoint, to pointB: CGPoint) -> CGMutablePath {
+        let path = CGMutablePath()
+        // edges of dimension line
+        path.move(to: CGPoint(x: pointA.x, y: pointA.y-surfaceWith))
+        path.addLine(to: CGPoint(x: pointA.x, y: pointA.y+surfaceWith))
+        path.move(to: CGPoint(x: pointB.x, y: pointB.y-surfaceWith))
+        path.addLine(to: CGPoint(x: pointB.x, y: pointB.y+surfaceWith))
+        
+        // main line with gap for label
+        path.move(to: pointA)
+        path.addLine(to: CGPoint(x: -dimensionLabelWidth/2, y: -dimensionLineDistFromSurface))
+        path.move(to: pointB)
+        path.addLine(to: CGPoint(x: dimensionLabelWidth/2, y: -dimensionLineDistFromSurface))
+        
+        return path
+    }
+    
+    private func createDimLabel() -> SKLabelNode {
+        let dimTotalInches = CGFloat(self.capturedSurface.dimensions.x) * metersToInchesFactor
+        let feet = Int(dimTotalInches / 12)
+        let inches = Int(round(dimTotalInches.truncatingRemainder(dividingBy: 12)))
+        
+        let label = SKLabelNode(text: "\(feet)' \(inches)\"")
+        label.fontColor = floorPlanSurfaceColor
+        label.position.y = -dimensionLineDistFromSurface - labelFontSize/2
+        label.fontSize = labelFontSize
+        label.fontName = labelFont
+        
+        return label
+    }
+    
+    private func createDimNode(from path: CGPath) -> SKShapeNode {
+        let shapeNode = SKShapeNode(path: path)
+        shapeNode.strokeColor = floorPlanSurfaceColor
+        shapeNode.lineWidth = dimensionWidth
+        
+        return shapeNode
     }
 }

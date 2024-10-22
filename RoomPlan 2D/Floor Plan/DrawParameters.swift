@@ -33,8 +33,16 @@ let objectZPosition: CGFloat = 30
 let objectOutlineZPosition: CGFloat = 31
 
 // 尺度标记参数
-let measurementLineOffset: CGFloat = 40.0
-let measurementLineWidth: CGFloat = 2.0
-let measurementTextFontSize: CGFloat = 12.0
-let measurementTextColor = UIColor.black
-let measurementLineColor = UIColor.black
+let measurementLineOffset: CGFloat = 5.0  // 减小这个值，使测量线更靠近墙
+let measurementLineWidth: CGFloat = 1.0   // 可以减小线宽使其看起来更精细
+let measurementTextFontSize: CGFloat = 10.0
+let measurementTextColor = UIColor.darkGray
+let measurementLineColor = UIColor.darkGray
+
+// 新增参数
+let dimensionLineDistFromSurface: CGFloat = 30.0
+let dimensionLabelWidth: CGFloat = 50.0
+let dimensionWidth: CGFloat = 1.0
+let labelFontSize: CGFloat = 12.0
+let labelFont = "Helvetica"
+let metersToInchesFactor: CGFloat = 39.3701
