@@ -31,3 +31,10 @@ let doorArcZPosition: CGFloat = 21
 
 let objectZPosition: CGFloat = 30
 let objectOutlineZPosition: CGFloat = 31
+
+// 尺度标记参数
+let measurementLineOffset: CGFloat = 40.0
+let measurementLineWidth: CGFloat = 2.0
+let measurementTextFontSize: CGFloat = 12.0
+let measurementTextColor = UIColor.black
+let measurementLineColor = UIColor.black

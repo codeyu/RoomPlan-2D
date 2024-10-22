@@ -58,6 +58,7 @@ class FloorPlanSurface: SKNode {
         @unknown default:
             drawWall()
         }
+        drawMeasurement()
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -160,4 +161,25 @@ class FloorPlanSurface: SKNode {
         return shapeNode
     }
     
+    private func drawMeasurement() {
+        let length = CGFloat(capturedSurface.dimensions.x) * scalingFactor
+        
+        // 创建测量线
+        let measurementPath = CGMutablePath()
+        measurementPath.move(to: CGPoint(x: -length/2, y: measurementLineOffset))
+        measurementPath.addLine(to: CGPoint(x: length/2, y: measurementLineOffset))
+        
+        let measurementLine = SKShapeNode(path: measurementPath)
+        measurementLine.strokeColor = measurementLineColor
+        measurementLine.lineWidth = measurementLineWidth
+        
+        // 创建测量文本
+        let measurementText = SKLabelNode(text: String(format: "%.2f m", capturedSurface.dimensions.x))
+        measurementText.fontSize = measurementTextFontSize
+        measurementText.fontColor = measurementTextColor
+        measurementText.position = CGPoint(x: 0, y: measurementLineOffset + 10)
+        
+        addChild(measurementLine)
+        addChild(measurementText)
+    }
 }
