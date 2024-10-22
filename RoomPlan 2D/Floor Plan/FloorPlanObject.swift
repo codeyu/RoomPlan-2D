@@ -14,7 +14,7 @@ class FloorPlanObject: SKNode {
     
     // MARK: - Init
     
-    init(capturedObject: CapturedRoom.Object) {
+    init(capturedObject: CapturedRoom.Object, largestSurface: CapturedRoom.Surface?) {
         self.capturedObject = capturedObject
         
         super.init()
@@ -23,9 +23,13 @@ class FloorPlanObject: SKNode {
         let objectPositionX = -CGFloat(capturedObject.transform.position.x) * scalingFactor
         let objectPositionY = CGFloat(capturedObject.transform.position.z) * scalingFactor
         self.position = CGPoint(x: objectPositionX, y: objectPositionY)
+            .rotateAround(
+                point: .zero,
+                by: -CGFloat(largestSurface?.transform.eulerAngles.y ?? 0)
+            )
         
         // Set the object's zRotation using the transform matrix
-        self.zRotation = -CGFloat(capturedObject.transform.eulerAngles.z - capturedObject.transform.eulerAngles.y)
+        self.zRotation = -CGFloat(capturedObject.transform.eulerAngles.z - capturedObject.transform.eulerAngles.y + (largestSurface?.transform.eulerAngles.y ?? 0))
         
         drawObject()
     }

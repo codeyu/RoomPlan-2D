@@ -59,8 +59,9 @@ class FloorPlanScene: SKScene {
     }
     
     private func drawObjects() {
+        let largestSurface = surfaces.max { $0.dimensions.x < $1.dimensions.x }
         for object in objects {
-            let objectNode = FloorPlanObject(capturedObject: object)
+            let objectNode = FloorPlanObject(capturedObject: object, largestSurface: largestSurface)
             addChild(objectNode)
         }
     }
